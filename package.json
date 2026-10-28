@@ -1,0 +1,11 @@
+{
+  "name": "saji",
+  "private": true,
+  "type": "module",
+  "description": "Nákupní kontrolka – statická webová aplikace (bez build kroku). package.json slouží jen pro testy.",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node --test tests/"
+  }
+}
+

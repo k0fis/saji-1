@@ -1,0 +1,16 @@
+# === IDE / editory ===
+.idea/
+*.iml
+.vscode/
+*.swp
+*~
+
+# === Node ===
+node_modules/
+
+# === Build ===
+_site/
+
+# === OS ===
+.DS_Store
+Thumbs.db

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Saji">
+  <title>Saji – nákupní kontrolka</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./css/app.css">
+  <script type="module" src="./js/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <button id="storeBtn" class="store-btn" type="button">🏪 <span id="storeName">Vybrat obchod</span></button>
+      <button id="menuBtn" class="icon-btn" type="button" aria-label="Menu">⋯</button>
+    </div>
+    <div class="total-row">
+      <div>
+        <div class="label">V košíku</div>
+        <div id="cartTotal" class="total">0 Kč</div>
+      </div>
+      <div class="right">
+        <div id="estimate" class="muted"></div>
+        <div id="budgetInfo" class="muted"></div>
+        <div id="receiptInfo" class="muted"></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="plannedSec" hidden>
+      <h2>Koupit <span id="plannedCount" class="count"></span></h2>
+      <ul id="plannedList" class="items"></ul>
+    </section>
+    <section id="cartSec" hidden>
+      <h2>V košíku <span id="cartCount" class="count"></span></h2>
+      <ul id="cartList" class="items"></ul>
+    </section>
+    <div id="empty" class="empty">
+      <p><b>Seznam je prázdný.</b></p>
+      <p>Doma si přidej, co chceš koupit (<b>+ Seznam</b>).<br>V obchodě naskenuj zboží (<b>Skenovat</b>) a doplň cenu.</p>
+    </div>
+  </main>
+
+  <nav class="bottom">
+    <button id="planBtn" class="btn secondary" type="button">+ Seznam</button>
+    <button id="scanBtn" class="btn primary big" type="button">▦ Skenovat</button>
+    <button id="addBtn" class="btn secondary" type="button">+ Ručně</button>
+  </nav>
+
+  <!-- Detail položky -->
+  <dialog id="itemDlg" class="sheet">
+    <form id="itemForm" method="dialog" novalidate>
+      <div class="sheet-head">
+        <h3 id="itemTitle">Položka</h3>
+        <button id="itemClose" class="icon-btn" type="button" aria-label="Zavřít">✕</button>
+      </div>
+      <div class="product">
+        <img id="itemImg" alt="" hidden>
+        <div>
+          <div id="itemEan" class="muted small"></div>
+          <div id="itemLookup" class="muted small"></div>
+        </div>
+      </div>
+      <label>Název
+        <input id="itemName" list="catalogNames" autocomplete="off" enterkeyhint="next" placeholder="např. Mléko 1 l">
+      </label>
+      <datalist id="catalogNames"></datalist>
+      <div class="grid2">
+        <label id="priceRow">Cena za kus / kg
+          <input id="itemPrice" inputmode="decimal" autocomplete="off" placeholder="0,00" enterkeyhint="next">
+          <span id="priceHint" class="hint"></span>
+        </label>
+        <label>Množství
+          <div class="stepper">
+            <button type="button" id="qtyDec" aria-label="Méně">−</button>
+            <input id="itemQty" inputmode="decimal" autocomplete="off" enterkeyhint="done">
+            <button type="button" id="qtyInc" aria-label="Více">+</button>
+          </div>
+        </label>
+      </div>
+      <div id="lineTotal" class="line-total"></div>
+      <p id="itemError" class="error" hidden></p>
+      <div class="actions">
+        <button id="itemDelete" type="button" class="btn ghost danger">Smazat</button>
+        <button id="itemScan" type="button" class="btn secondary">▦ Naskenovat</button>
+        <button id="itemSave" type="submit" value="save" class="btn primary">Uložit</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Skener -->
+  <dialog id="scanDlg" class="scanner">
+    <div class="scan-wrap">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="scan-frame"></div>
+      <div class="scan-top">
+        <button id="torchBtn" class="icon-btn light" type="button" hidden aria-label="Svítilna">🔦</button>
+        <span id="scanStatus" class="scan-status"></span>
+        <button id="scanClose" class="icon-btn light" type="button" aria-label="Zavřít">✕</button>
+      </div>
+      <form id="manualForm" class="scan-manual">
+        <input id="manualEan" inputmode="numeric" pattern="[0-9]*" placeholder="Nebo zadej kód ručně" autocomplete="off">
+        <button class="btn primary" type="submit">OK</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Výběr obchodu -->
+  <dialog id="storeDlg" class="sheet">
+    <form method="dialog">
+      <div class="sheet-head">
+        <h3>Kde nakupuješ?</h3>
+        <button class="icon-btn" value="cancel" aria-label="Zavřít">✕</button>
+      </div>
+      <div id="storeChips" class="chips"></div>
+      <div class="row">
+        <input id="newStore" placeholder="Jiný obchod" autocomplete="off">
+        <button id="addStoreBtn" type="button" class="btn secondary">Přidat</button>
+      </div>
+      <button id="noStoreBtn" type="button" class="btn ghost">Bez obchodu</button>
+      <p class="muted small">Ceny se pamatují zvlášť pro každý obchod.</p>
+    </form>
+  </dialog>
+
+  <!-- Menu -->
+  <dialog id="menuDlg" class="sheet">
+    <form method="dialog">
+      <div class="sheet-head">
+        <h3>Nákup</h3>
+        <button class="icon-btn" value="cancel" aria-label="Zavřít">✕</button>
+      </div>
+      <div class="grid2">
+        <label>Rozpočet (Kč)
+          <input id="budgetInput" inputmode="decimal" placeholder="nepovinné" autocomplete="off">
+        </label>
+        <label>Částka z účtenky
+          <input id="receiptInput" inputmode="decimal" placeholder="pro kontrolu" autocomplete="off">
+        </label>
+      </div>
+      <h4>Sdílet seznam</h4>
+      <div class="share-row">
+        <button id="shareNative" type="button" class="btn secondary">📤 Sdílet…</button>
+        <a id="shareWa" class="btn secondary" target="_blank" rel="noopener">WhatsApp</a>
+        <a id="shareMail" class="btn secondary">E-mail</a>
+        <button id="shareCopy" type="button" class="btn secondary">Kopírovat</button>
+      </div>
+      <h4>Nový nákup</h4>
+      <button id="newPurchase" type="button" class="btn ghost danger">Ukončit a začít nový nákup</button>
+      <p class="muted small">Data jsou uložena jen v tomto zařízení.</p>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
+
+

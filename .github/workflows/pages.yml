@@ -1,0 +1,100 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# jen jedno nasazení najednou; rozběhnuté nasazení se nepřerušuje
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Testy
+        run: npm test
+
+      - name: Připravit web (jen soubory potřebné pro běh)
+        run: |
+          mkdir -p _site
+          cp -r index.html manifest.webmanifest .nojekyll css js icons _site/
+          ls -R _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  cleanup:
+    # úklid proběhne i při neúspěšném buildu/nasazení
+    needs: [build, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Smazat staré běhy a artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const keepRuns = 4;
+            const keepArtifacts = 4;
+
+            // 1. Smazat staré workflow runs
+            const workflows = await github.rest.actions.listRepoWorkflows({ owner, repo });
+            for (const wf of workflows.data.workflows) {
+              const runs = await github.rest.actions.listWorkflowRuns({
+                owner, repo, workflow_id: wf.id, per_page: 100,
+              });
+              const toDelete = runs.data.workflow_runs.slice(keepRuns);
+              console.log(`${wf.name}: ${runs.data.total_count} celkem, mažu ${toDelete.length} běhů`);
+              for (const run of toDelete) {
+                try {
+                  await github.rest.actions.deleteWorkflowRun({ owner, repo, run_id: run.id });
+                } catch (e) {
+                  console.log(`  run ${run.id}: ${e.message}`);
+                }
+              }
+            }
+
+            // 2. Smazat staré artifacts (upload-pages-artifact zanechává github-pages artifacts)
+            const arts = await github.rest.actions.listArtifactsForRepo({
+              owner, repo, per_page: 100,
+            });
+            const toDeleteArts = arts.data.artifacts.slice(keepArtifacts);
+            console.log(`Artifacts: ${arts.data.total_count} celkem, mažu ${toDeleteArts.length}`);
+            for (const art of toDeleteArts) {
+              try {
+                await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: art.id });
+              } catch (e) {
+                console.log(`  artifact ${art.id}: ${e.message}`);
+              }
+            }
+
