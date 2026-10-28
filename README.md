@@ -1,5 +1,7 @@
 # Saji – nákupní kontrolka (demo)
 
+> **👉 [Spustit aplikaci](https://k0fis.github.io/saji-1/)**
+
 Mobilní webová aplikace bez backendu, která pomáhá hlídat celkovou cenu nákupu.
 Uživatel naskenuje čárový kód, aplikace zkusí dohledat název zboží, uživatel doplní
 cenu a množství a průběžně vidí celkovou částku. Hostování: **GitHub Pages**.
@@ -246,7 +248,8 @@ Vše v `localStorage` (pro demo stačí, limit ~5 MB). Při růstu přejít na I
 ### Struktura projektu
 ```
 /
-├── .github/workflows/pages.yml  # CI: test → deploy na Pages → úklid starých běhů
+├── .github/workflows/pages.yml  # CI: test → deploy na Pages → úklid starých běhů + artifacts
+├── .gitignore               # IDE, node_modules, _site, OS soubory
 ├── index.html               # layout + dialogy (detail, skener, obchod, menu)
 ├── manifest.webmanifest
 ├── .nojekyll                # GitHub Pages: servírovat soubory tak, jak jsou
